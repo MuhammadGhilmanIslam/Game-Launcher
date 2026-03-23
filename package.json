@@ -1,0 +1,36 @@
+{
+  "name": "arcvault",
+  "version": "0.1.0",
+  "description": "ArcVault Game Launcher — PS5-inspired desktop game library",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build && tsc -p tsconfig.electron.json && electron-rebuild -f -w better-sqlite3 && electron-builder",
+    "preview": "electron .",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
+  },
+  "author": "Ghilman",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.8.3",
+    "nanoid": "^5.0.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "electron-rebuild": "^3.2.9",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "wait-on": "^8.0.1"
+  }
+}
