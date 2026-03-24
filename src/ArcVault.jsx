@@ -58,21 +58,15 @@ const Snd={
   open(){try{const c=ac(),o=c.createOscillator(),g=c.createGain();o.type="sine";o.connect(g);g.connect(c.destination);o.frequency.setValueAtTime(700,c.currentTime);o.frequency.exponentialRampToValueAtTime(950,c.currentTime+0.15);g.gain.setValueAtTime(0.07,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.18);o.start();o.stop(c.currentTime+0.18);}catch{}},
 };
 
-// ── CLAUDE API ─────────────────────────────────────────────
-const callAI=async(system,user)=>{
-  const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system,messages:[{role:"user",content:user}]})});
-  if(!r.ok)throw new Error(r.status);
-  const d=await r.json();return d.content.map(b=>b.text||"").join("");
-};
-const AI={
-  async meta(name){
-    const t=await callAI(`Balas HANYA JSON valid tanpa markdown: {"developer":"...","genre":"...","year":2024,"description":"..."}. Genre harus salah satu dari: ${GENRES.join(", ")}. Description max 200 karakter bahasa Indonesia.`,`Metadata game: "${name}"`);
-    return JSON.parse(t.replace(/```json|```/g,"").trim());
-  },
-  async rec(games){
-    const s=games.slice(0,8).map(g=>`${g.name} (${g.genre}, ${fmtTime(g.totalMinutes)}, ${fmtRel(g.lastPlayed)})`).join("\n");
-    return callAI(`Kamu AI asisten Game Launcher ArcVault. Beri rekomendasi game singkat, kasual, personal dalam 2-3 kalimat Bahasa Indonesia.`,`Library:\n${s}\n\nGame apa yang direkomendasikan sekarang dan mengapa?`);
-  },
+// ── GEMINI API ─────────────────────────────────────────────
+const AI = {
+  meta: (name) => window.api.getMetadata(name),
+  rec: (games) => {
+    const summary = games.slice(0, 8).map(g =>
+      `${g.name} (${g.genre}, ${fmtTime(g.totalMinutes)}, ${fmtRel(g.lastPlayed)})`
+    ).join('\n')
+    return window.api.getRecommendation(summary)
+  }
 };
 
 // ════════════════════════════════════════════════════════════
@@ -112,14 +106,14 @@ const GameCard=({game,focused,onFocus,onLaunch,idx})=>{
   const c=GENRE_COLORS[game.genre]||"#8090b0";
   const isNew=game.lastPlayed&&(Date.now()-new Date(game.lastPlayed).getTime())<172800000;
   return(
-    <div onClick={()=>onFocus(game)} onDoubleClick={()=>onLaunch(game)} style={{aspectRatio:"2/3",borderRadius:10,overflow:"hidden",cursor:"pointer",position:"relative",border:focused?`1.5px solid ${c}`:"1.5px solid transparent",boxShadow:focused?`0 0 28px ${c}30,0 0 0 1px ${c}35`:"none",transform:focused?"scale(1.055)":"scale(1)",transition:"all 0.22s cubic-bezier(0.16,1,0.3,1)",animation:`fadeInUp 0.4s ease ${idx*0.045}s both`,background:"var(--bg3)",zIndex:focused?2:1}}>
-      <img src={game.coverUrl} alt={game.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block",filter:focused?"brightness(1.05)":"brightness(0.7) saturate(0.8)",transition:"filter 0.22s"}} onError={e=>e.target.style.display="none"}/>
-      <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.88) 0%,transparent 55%)",opacity:focused?1:0,transition:"opacity 0.22s"}}/>
-      <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"7px",opacity:focused?1:0,transition:"opacity 0.2s"}}>
-        <div style={{fontSize:10,fontWeight:600,color:"#fff",lineHeight:1.3,fontFamily:"var(--font-ui)",textAlign:"center"}}>{game.name}</div>
+    <div onClick={()=>onFocus(game)} onDoubleClick={()=>onLaunch(game)} style={{aspectRatio:"2/3",borderRadius:10,overflow:"hidden",cursor:"pointer",position:"relative",border:focused?`2px solid ${c}`:"2px solid transparent",boxShadow:focused?`0 0 16px ${c}30`:"none",transition:"all 0.22s cubic-bezier(0.16,1,0.3,1)",animation:`fadeInUp 0.4s ease ${idx*0.045}s both`,background:"var(--bg3)"}}>
+      <img src={game.coverUrl} alt={game.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block",filter:focused?"brightness(1.08)":"brightness(0.55) saturate(0.65)",transition:"filter 0.22s"}} onError={e=>e.target.style.display="none"}/>
+      <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(0,0,0,0.9) 0%,rgba(0,0,0,0.3) 40%,transparent 60%)",opacity:focused?1:0.4,transition:"opacity 0.22s"}}/>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"6px 5px"}}>
+        <div style={{fontSize:9,fontWeight:700,color:focused?"#fff":"rgba(255,255,255,0.6)",lineHeight:1.25,fontFamily:"var(--font-ui)",textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",transition:"color 0.22s"}}>{game.name}</div>
       </div>
-      {game.isFavorite&&<div style={{position:"absolute",top:5,right:5,fontSize:10,color:"var(--amber)",textShadow:"0 0 8px rgba(240,184,64,0.7)"}}>★</div>}
-      {isNew&&<div style={{position:"absolute",top:5,left:5,background:"rgba(91,142,240,0.88)",backdropFilter:"blur(4px)",borderRadius:3,padding:"2px 5px",fontSize:8,fontWeight:700,color:"#fff",letterSpacing:"0.8px",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>NEW</div>}
+      {game.isFavorite&&<div style={{position:"absolute",top:4,right:4,fontSize:9,color:"var(--amber)",textShadow:"0 0 6px rgba(240,184,64,0.7)"}}>★</div>}
+      {isNew&&<div style={{position:"absolute",top:4,left:4,background:"rgba(91,142,240,0.88)",backdropFilter:"blur(4px)",borderRadius:3,padding:"1px 5px",fontSize:7,fontWeight:700,color:"#fff",letterSpacing:"0.8px",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>NEW</div>}
     </div>
   );
 };
@@ -603,24 +597,27 @@ export default function ArcVault(){
           ) : null}
 
           {/* MAIN AREA */}
-          <div style={{flex:1,display:"flex",gap:32,alignItems:"center",minHeight:0,padding:"24px 0"}}>
+          <div style={{flex:1,display:"flex",gap:28,alignItems:"stretch",minHeight:0,padding:"24px 0"}}>
             {focused&&(
               <HeroPanel game={focused} onLaunch={handleLaunch} onFav={handleFav} onDelete={handleDelete} aiRec={aiRec} loadingRec={loadRec} onRec={handleRec} isLaunching={isLaunching}/>
             )}
 
             {/* Grid */}
-            <div style={{width:340,flexShrink:0,height:"100%",display:"flex",flexDirection:"column",gap:10}}>
-              <div style={{fontSize:9,letterSpacing:"2px",color:"var(--txt3)",fontFamily:"var(--font-mono)",textTransform:"uppercase",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{width:360,flexShrink:0,height:"100%",display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{fontSize:9,letterSpacing:"2px",color:"var(--txt3)",fontFamily:"var(--font-mono)",textTransform:"uppercase",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
                 <span>Library · {filtered.length} game{filtered.length!==1?"s":""}</span>
                 <span style={{color:"var(--txt3)"}}>← → navigasi · Enter launch</span>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:8,overflowY:"auto",paddingRight:2,flex:1}}>
-                {filtered.map((g,i)=>(
-                  <GameCard key={g.id} game={g} idx={i} focused={focused?.id===g.id} onFocus={handleFocus} onLaunch={handleLaunch}/>
-                ))}
-                <div onClick={()=>{Snd.open();setShowAdd(true);}} style={{aspectRatio:"2/3",borderRadius:10,border:"1px dashed rgba(91,142,240,0.2)",background:"rgba(91,142,240,0.03)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",transition:"all 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(91,142,240,0.45)";e.currentTarget.style.background="rgba(91,142,240,0.08)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(91,142,240,0.2)";e.currentTarget.style.background="rgba(91,142,240,0.03)";}}>
-                  <span style={{fontSize:22,color:"rgba(91,142,240,0.3)",lineHeight:1}}>+</span>
-                  <span style={{fontSize:9,color:"rgba(91,142,240,0.3)",letterSpacing:"1px",textTransform:"uppercase",fontFamily:"var(--font-mono)"}}>Add</span>
+              {/* Scroll wrapper - this scrolls, grid inside grows freely */}
+              <div style={{flex:1,minHeight:0,overflowY:"auto",overflowX:"hidden",paddingRight:4}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:12,padding:"4px 2px"}}>
+                  {filtered.map((g,i)=>(
+                    <GameCard key={g.id} game={g} idx={i} focused={focused?.id===g.id} onFocus={handleFocus} onLaunch={handleLaunch}/>
+                  ))}
+                  <div onClick={()=>{Snd.open();setShowAdd(true);}} style={{aspectRatio:"2/3",borderRadius:10,border:"1px dashed rgba(91,142,240,0.2)",background:"rgba(91,142,240,0.03)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",transition:"all 0.2s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(91,142,240,0.45)";e.currentTarget.style.background="rgba(91,142,240,0.08)";}} onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(91,142,240,0.2)";e.currentTarget.style.background="rgba(91,142,240,0.03)";}}>
+                    <span style={{fontSize:22,color:"rgba(91,142,240,0.3)",lineHeight:1}}>+</span>
+                    <span style={{fontSize:9,color:"rgba(91,142,240,0.3)",letterSpacing:"1px",textTransform:"uppercase",fontFamily:"var(--font-mono)"}}>Add</span>
+                  </div>
                 </div>
               </div>
             </div>

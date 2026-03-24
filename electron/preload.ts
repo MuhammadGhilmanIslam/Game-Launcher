@@ -41,4 +41,8 @@ contextBridge.exposeInMainWorld('api', {
     return () => ipcRenderer.removeListener('update:downloaded', cb);
   },
   installUpdate: () => ipcRenderer.invoke('update:install'),
+
+  // ── AI ──
+  getMetadata:       (name: string)    => ipcRenderer.invoke('ai:getMetadata', name),
+  getRecommendation: (summary: string) => ipcRenderer.invoke('ai:getRecommendation', summary),
 });

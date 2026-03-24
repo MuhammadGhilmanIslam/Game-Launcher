@@ -1,10 +1,14 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import * as dotenv from 'dotenv';
 import * as path from 'path';
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
+import { app, BrowserWindow, ipcMain } from 'electron';
 import Store from 'electron-store';
 import { initDatabase } from './db/database';
 import { registerGameHandlers } from './ipc/gameHandlers';
 import { registerSystemHandlers } from './ipc/systemHandlers';
 import { setupAutoUpdater } from './updater';
+import { registerAIHandlers } from './ipc/aiHandlers';
 
 // ── Store for persisting window bounds ──
 const store = new Store<{ windowBounds: Electron.Rectangle }>();
@@ -37,14 +41,18 @@ function createWindow(): BrowserWindow {
   win.once('ready-to-show', () => {
     win.show();
   });
+  console.log('resourcesPath:', process.resourcesPath);
+  console.log('__dirname:', __dirname);
+  console.log('isPackaged:', app.isPackaged);
 
   // Load the app
-  if (isDev) {
-    win.loadURL('http://localhost:5173');
-    win.webContents.openDevTools({ mode: 'detach' });
+  if (app.isPackaged) {
+    win.loadFile(path.join(process.resourcesPath, 'app.asar', 'dist', 'index.html'));
   } else {
-    win.loadFile(path.join(__dirname, '../dist/index.html'));
+    win.loadURL('http://localhost:5173');
+    // win.webContents.openDevTools({ mode: 'detach' }); // Turn off devtools
   }
+
 
   // ── Save window bounds on move/resize ──
   const saveBounds = () => {
@@ -82,9 +90,11 @@ ipcMain.handle('window:close', (e) => {
 
 // ── App Lifecycle ──
 app.whenReady().then(() => {
+  dotenv.config({ path: path.join(__dirname, '../.env') });
   initDatabase();
   registerGameHandlers();
   registerSystemHandlers();
+  registerAIHandlers();
   const win = createWindow();
   setupAutoUpdater(win);
 
